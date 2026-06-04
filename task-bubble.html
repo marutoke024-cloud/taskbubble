@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task Bubble</title>
+<style>
+  :root{
+    --bg:#262624; --side:#1f1e1d; --side-hover:#33322f; --line:#3a3937;
+    --txt:#e8e6e3; --muted:#a8a6a1; --faint:#7d7b76;
+    --accent:#d97757; --accent-soft:#3a2c25;
+    --red:#e0685a; --green:#5fb98c; --radius:8px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP","Hiragino Kaku Gothic ProN",Roboto,sans-serif;
+    background:var(--bg);color:var(--txt);display:flex;height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;}
+  .sidebar{width:248px;min-width:248px;background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;height:100%}
+  .brand{padding:18px 18px 10px;display:flex;align-items:center;gap:9px}
+  .brand .logo{width:26px;height:26px;border-radius:8px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.4);position:relative}
+  .brand .logo::after{content:"";position:absolute;top:5px;left:5px;width:12px;height:12px;border-radius:50%;background:#191919}
+  .brand .logo::before{content:"";position:absolute;top:7px;left:7px;width:4px;height:4px;border-radius:50%;background:#fff;z-index:1}
+  .brand .t{font-weight:800;font-size:16px;letter-spacing:-.2px}
+  .brand .t small{display:block;font-weight:600;font-size:9.5px;letter-spacing:3px;color:var(--faint);margin-top:1px}
+  .new-list{margin:6px 10px 4px;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius);cursor:pointer;color:var(--muted);font-size:13.5px;font-weight:600;user-select:none}
+  .new-list:hover{background:var(--side-hover);color:var(--txt)}
+  .new-list .plus{font-size:16px;line-height:1}
+  .sec-label{padding:10px 18px 4px;font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--faint);text-transform:uppercase}
+  .lists{flex:1;overflow-y:auto;padding:0 10px 14px}
+  .list-item{display:flex;align-items:center;gap:8px;padding:7px 10px;margin:1px 0;border-radius:var(--radius);cursor:pointer;font-size:14px;user-select:none;color:var(--txt)}
+  .list-item:hover{background:var(--side-hover)}
+  .list-item.active{background:var(--side-hover);font-weight:600}
+  .list-item .ic{font-size:14px;opacity:.8}
+  .list-item .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .list-item .cnt{font-size:11px;color:var(--faint);background:rgba(0,0,0,.05);padding:1px 7px;border-radius:10px}
+  .side-foot{padding:10px 18px;border-top:1px solid var(--line);font-size:11px;color:var(--faint)}
+  .main{flex:1;display:flex;flex-direction:column;height:100%;overflow:hidden}
+  .topbar{padding:20px 36px 8px}
+  .topbar h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.8px;display:flex;align-items:center;gap:10px}
+  .topbar h1 .mark{display:inline-block;width:26px;height:26px;border-radius:8px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.4);position:relative;flex:0 0 auto}
+  .topbar h1 .mark::after{content:"";position:absolute;top:6px;left:6px;width:13px;height:13px;border-radius:50%;background:#191919}
+  .topbar h1 .mark::before{content:"";position:absolute;top:8px;left:8px;width:5px;height:5px;border-radius:50%;background:#fff;z-index:1}
+  .topbar h1 .em{color:var(--txt)}
+  .topbar .crumb{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .content{flex:1;overflow-y:auto;padding:10px 36px 48px}
+  .addbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0 18px}
+  .addbar input,.addbar select{background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:10px 12px;border-radius:var(--radius);font-size:14px;outline:none}
+  .addbar input:focus,.addbar select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .addbar select{cursor:pointer}
+  #t-title{flex:1 1 320px}
+  #t-tag-sel{flex:0 1 160px}
+  #t-tag-new{flex:0 1 160px}
+  .btn{cursor:pointer;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;padding:10px 16px;color:#fff;background:var(--accent);transition:.12s}
+  .btn:hover{filter:brightness(1.06)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  .btn.ghost.on{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .seg{display:flex;gap:4px;background:var(--side);padding:4px;border-radius:10px;border:1px solid var(--line)}
+  .seg button{padding:7px 13px;border-radius:7px;border:none;cursor:pointer;background:transparent;color:var(--muted);font-size:13px;font-weight:600}
+  .seg button.on{background:var(--bg);color:var(--txt);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .filters{display:flex;gap:6px}
+  .filters button{font-size:12px;padding:6px 12px}
+  .list{display:flex;flex-direction:column;gap:2px}
+  .task{display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:var(--radius);border-bottom:1px solid var(--line)}
+  .task:hover{background:var(--side)}
+  .task.done .name{text-decoration:line-through;color:var(--faint)}
+  .star{background:none;border:none;cursor:pointer;font-size:17px;line-height:1;padding:2px 4px;flex:0 0 auto;color:var(--faint);transition:.12s}
+  .star:hover{color:#f5c451}
+  .star.on{color:#f5c451}
+  .check{width:20px;height:20px;border-radius:50%;border:2px solid #57544f;cursor:pointer;flex:0 0 auto;display:grid;place-items:center;transition:.12s}
+  .task.done .check{background:var(--green);border-color:var(--green)}
+  .check svg{width:12px;height:12px;opacity:0}
+  .task.done .check svg{opacity:1}
+  .name{flex:1;font-size:15px;word-break:break-word}
+  .chip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;color:#fff;white-space:nowrap}
+  .del{background:transparent;border:none;color:var(--faint);cursor:pointer;font-size:17px;line-height:1;padding:4px 7px;border-radius:6px;opacity:0}
+  .task:hover .del{opacity:1}
+  .del:hover{color:var(--red);background:rgba(224,62,62,.1)}
+  .empty{text-align:center;color:var(--faint);padding:56px 10px;font-size:14px}
+  #bubble-view{display:none}
+  .bubble-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+  .bubble-head .note{color:var(--faint);font-size:12px}
+  .stage{background:linear-gradient(180deg,#2c2b29,#201f1e);border:1px solid var(--line);border-radius:16px;overflow:hidden;width:100%;height:64vh;min-height:340px}
+  #svg{display:block;width:100%;height:100%;touch-action:none}
+  .bub-label{font-weight:800;text-anchor:middle;fill:#fff;pointer-events:none;paint-order:stroke;stroke:rgba(0,0,0,.18);stroke-width:.6px}
+  .bubble circle.body{cursor:grab}
+  .bubble.dragging circle.body{cursor:grabbing}
+  .stats{margin-top:14px;color:var(--muted);font-size:13px;text-align:center}
+  .ctx{position:fixed;z-index:50;background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.16);padding:5px;min-width:160px;display:none}
+  .ctx button{display:flex;width:100%;align-items:center;gap:9px;padding:8px 11px;border:none;background:transparent;cursor:pointer;font-size:13.5px;color:var(--txt);border-radius:6px;text-align:left}
+  .ctx button:hover{background:var(--side)}
+  .ctx button.danger:hover{background:rgba(224,62,62,.1);color:var(--red)}
+  .ctx hr{border:none;border-top:1px solid var(--line);margin:4px 2px}
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div class="t">Task Bubble<small>TASK&nbsp;MANAGER</small></div>
+    </div>
+    <div class="new-list" onclick="createList()"><span class="plus">＋</span> タスクリストを名前を付けて作成</div>
+    <div class="sec-label">リスト</div>
+    <div class="lists" id="lists"></div>
+    <div class="side-foot">データはこのブラウザに自動保存されます</div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1><span class="mark"></span><span class="em">Task Bubble</span></h1>
+      <div class="crumb" id="crumb"></div>
+    </div>
+    <div class="content">
+      <form class="addbar" id="add-form" autocomplete="off">
+        <input id="t-title" placeholder="タスクを入力…" required>
+        <select id="t-tag-sel" onchange="toggleNewTag()"></select>
+        <input id="t-tag-new" placeholder="新しいタグ名">
+        <button class="btn" type="submit">追加</button>
+      </form>
+      <div class="toolbar">
+        <div class="seg">
+          <button id="v-list" class="on" onclick="setView('list')">📋 リスト</button>
+          <button id="v-bubble" onclick="setView('bubble')">🫧 バブル</button>
+        </div>
+        <div class="filters" id="filters">
+          <button class="btn ghost on" data-f="active" onclick="setFilter('active')">未完了</button>
+          <button class="btn ghost" data-f="done" onclick="setFilter('done')">完了</button>
+        </div>
+      </div>
+      <div id="list-view"><div class="list" id="list"></div></div>
+      <div id="bubble-view">
+        <div class="bubble-head">
+          <span class="note">未完了タスクのタグ比重 ／ 円の大きさ＝件数 ／ バブルはドラッグで動かせます</span>
+        </div>
+        <div class="stage">
+          <svg id="svg" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <radialGradient id="gloss" cx="34%" cy="26%" r="78%">
+                <stop offset="0%" stop-color="#fff" stop-opacity="0.7"/>
+                <stop offset="26%" stop-color="#fff" stop-opacity="0.18"/>
+                <stop offset="64%" stop-color="#fff" stop-opacity="0"/>
+                <stop offset="100%" stop-color="#000" stop-opacity="0.14"/>
+              </radialGradient>
+              <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#000" flood-opacity="0.18"/>
+              </filter>
+            </defs>
+            <g id="bub-layer"></g>
+          </svg>
+        </div>
+        <div class="stats" id="stats"></div>
+      </div>
+    </div>
+  </main>
+  <div class="ctx" id="ctx">
+    <button onclick="ctxRename()">✏️ 名前を変更</button>
+    <hr>
+    <button class="danger" onclick="ctxDelete()">🗑️ 削除</button>
+  </div>
+<script>
+const KEY='taskbubble.v2';
+let state=load();
+let view='list', filter='active', bubbleBasis='active';
+
+function load(){
+  try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.lists)return s;}catch(e){}
+  let tasks=[];
+  try{const old=JSON.parse(localStorage.getItem('taskbubble.v1'));if(Array.isArray(old))tasks=old;}catch(e){}
+  return {lists:[{id:uid(),name:'マイタスク',tasks}],activeId:null,_initActive:true};
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+if(state._initActive||!state.activeId){state.activeId=state.lists[0]?state.lists[0].id:null;delete state._initActive;save();}
+function activeList(){return state.lists.find(l=>l.id===state.activeId)||null}
+
+let colorMap={};
+function rebuildColors(){
+  colorMap={};
+  const L=activeList();if(!L)return;
+  const tags=[...new Set(L.tasks.map(t=>t.tag))];
+  tags.forEach((t,i)=>{
+    const hue=(i*137.508)%360;
+    const l=58+(i%3)*4;
+    colorMap[t]='hsl('+hue.toFixed(1)+' 90% '+l+'%)';
+  });
+}
+function tagColor(tag){
+  if(colorMap[tag])return colorMap[tag];
+  let h=0;const t=(tag||'未分類');
+  for(let i=0;i<t.length;i++)h=t.charCodeAt(i)+((h<<5)-h);
+  return 'hsl('+(((h%360)+360)%360)+' 90% 60%)';
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+/* ---------- lists (projects) ---------- */
+function createList(){
+  const name=(prompt('リストの名前を入力してください','新しいリスト')||'').trim();
+  if(!name)return;
+  const l={id:uid(),name,tasks:[]};
+  state.lists.push(l);state.activeId=l.id;save();renderAll();
+}
+function selectList(id){state.activeId=id;save();renderAll();}
+function renderSidebar(){
+  const el=document.getElementById('lists');
+  if(!state.lists.length){el.innerHTML='<div class="empty" style="padding:24px 8px;font-size:13px">リストがありません</div>';return}
+  el.innerHTML=state.lists.map(l=>{
+    const active=l.id===state.activeId?'active':'';
+    const open=l.tasks.filter(t=>!t.done).length;
+    return '<div class="list-item '+active+'" data-id="'+l.id+'" onclick="selectList(\''+l.id+'\')" oncontextmenu="openCtx(event,\''+l.id+'\')">'+
+      '<span class="ic">📄</span><span class="nm">'+esc(l.name)+'</span><span class="cnt">'+open+'</span></div>';
+  }).join('');
+}
+
+/* context menu */
+let ctxTarget=null;
+function openCtx(e,id){
+  e.preventDefault();ctxTarget=id;
+  const m=document.getElementById('ctx');m.style.display='block';
+  const pad=8,w=m.offsetWidth||170,hh=m.offsetHeight||90;
+  m.style.left=Math.min(e.clientX,innerWidth-w-pad)+'px';
+  m.style.top=Math.min(e.clientY,innerHeight-hh-pad)+'px';
+}
+function closeCtx(){document.getElementById('ctx').style.display='none';ctxTarget=null;}
+document.addEventListener('click',closeCtx);
+document.addEventListener('scroll',closeCtx,true);
+function ctxRename(){
+  const l=state.lists.find(x=>x.id===ctxTarget);if(!l)return;
+  const name=(prompt('新しい名前',l.name)||'').trim();
+  if(name){l.name=name;save();renderAll();}
+}
+function ctxDelete(){
+  const l=state.lists.find(x=>x.id===ctxTarget);if(!l)return;
+  if(!confirm('「'+l.name+'」を削除しますか？\nこのリストのタスクも削除されます。'))return;
+  state.lists=state.lists.filter(x=>x.id!==ctxTarget);
+  if(state.activeId===ctxTarget)state.activeId=state.lists[0]?state.lists[0].id:null;
+  save();renderAll();
+}
+
+/* ---------- tasks ---------- */
+document.getElementById('add-form').addEventListener('submit',e=>{
+  e.preventDefault();
+  const L=activeList();if(!L){alert('先にリストを作成してください');return}
+  const title=document.getElementById('t-title').value.trim();
+  const sel=document.getElementById('t-tag-sel');
+  let tag;
+  if(!sel.value||sel.value==='__new__')tag=document.getElementById('t-tag-new').value.trim()||'未分類';
+  else tag=sel.value;
+  if(!title)return;
+  L.tasks.unshift({id:uid(),title,tag,done:false,star:false,createdAt:Date.now()});
+  save();e.target.reset();document.getElementById('t-title').focus();renderMain();renderSidebar();
+});
+function toggle(id){const L=activeList();const t=L&&L.tasks.find(x=>x.id===id);if(t){t.done=!t.done;save();renderMain();renderSidebar();}}
+function toggleStar(id){const L=activeList();const t=L&&L.tasks.find(x=>x.id===id);if(t){t.star=!t.star;save();renderMain();}}
+function del(id){const L=activeList();if(!L)return;L.tasks=L.tasks.filter(x=>x.id!==id);save();renderMain();renderSidebar();}
+
+/* ---------- view switches ---------- */
+function setView(v){view=v;
+  document.getElementById('list-view').style.display=v==='list'?'block':'none';
+  document.getElementById('bubble-view').style.display=v==='bubble'?'block':'none';
+  document.getElementById('v-list').classList.toggle('on',v==='list');
+  document.getElementById('v-bubble').classList.toggle('on',v==='bubble');
+  document.getElementById('filters').style.visibility=v==='list'?'visible':'hidden';
+  renderMain();
+}
+function setFilter(f){filter=f;
+  document.querySelectorAll('#filters button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));
+  renderMain();
+}
+
+/* ---------- render ---------- */
+function renderAll(){renderSidebar();renderMain();}
+function renderMain(){
+  const L=activeList();
+  document.getElementById('crumb').textContent=L?L.name:'リスト未選択';
+  rebuildColors();
+  updateTagList();
+  if(view==='list')renderList(); else {rebuildSim();startSim();}
+}
+function updateTagList(){
+  const L=activeList();const tags=L?[...new Set(L.tasks.map(t=>t.tag))]:[];
+  const sel=document.getElementById('t-tag-sel');
+  const cur=sel.value;
+  let html=tags.map(t=>'<option value="'+esc(t)+'">'+esc(t)+'</option>').join('');
+  html+='<option value="__new__">＋ 新しいタグ…</option>';
+  sel.innerHTML=html;
+  if([...sel.options].some(o=>o.value===cur))sel.value=cur;
+  toggleNewTag();
+}
+function toggleNewTag(){
+  const sel=document.getElementById('t-tag-sel');
+  const inp=document.getElementById('t-tag-new');
+  const showNew=(sel.value==='__new__'||sel.options.length<=1);
+  inp.style.display=showNew?'':'none';
+  if(!showNew)inp.value='';
+}
+function renderList(){
+  const el=document.getElementById('list');const L=activeList();
+  if(!L){el.innerHTML='<div class="empty">左の「＋ タスクリストを名前を付けて作成」からリストを作りましょう。</div>';return}
+  let arr=L.tasks;
+  if(filter==='active')arr=arr.filter(t=>!t.done);
+  if(filter==='done')arr=arr.filter(t=>t.done);
+  if(!arr.length){el.innerHTML='<div class="empty">タスクがありません。上のフォームから追加してください。</div>';return}
+  arr=arr.slice().sort((a,b)=>(b.star?1:0)-(a.star?1:0));
+  el.innerHTML=arr.map(t=>'<div class="task '+(t.done?'done':'')+'">'+
+    '<button class="star '+(t.star?'on':'')+'" onclick="toggleStar(\''+t.id+'\')" title="スター">'+(t.star?'★':'☆')+'</button>'+
+    '<div class="check" onclick="toggle(\''+t.id+'\')"><svg viewBox="0 0 24 24"><path fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M4 12l5 5L20 6"/></svg></div>'+
+    '<span class="name">'+esc(t.title)+'</span>'+
+    '<span class="chip" style="background:'+tagColor(t.tag)+'">'+esc(t.tag)+'</span>'+
+    '<button class="del" onclick="del(\''+t.id+'\')" title="削除">✕</button></div>').join('');
+}
+
+/* ============ BUBBLE SIMULATION (gummy, draggable, gravity to bottom) ============ */
+let W=800,H=520;const PAD=10;
+let nodes=[];
+let dragNode=null, dragOff={x:0,y:0};
+let rafId=null, lastActivity=0;
+function measureStage(){
+  const st=document.querySelector('.stage');
+  W=Math.max(320,st.clientWidth||800);
+  H=Math.max(280,st.clientHeight||520);
+  document.getElementById('svg').setAttribute('viewBox','0 0 '+W+' '+H);
+}
+function currentGroups(){
+  const L=activeList();if(!L)return{groups:[],total:0};
+  const pool=L.tasks.filter(t=>!t.done);
+  const map={};pool.forEach(t=>{map[t.tag]=(map[t.tag]||0)+1});
+  const groups=Object.keys(map).map(tag=>({tag,count:map[tag]})).sort((a,b)=>b.count-a.count);
+  return{groups,total:pool.length};
+}
+function rebuildSim(){
+  measureStage();
+  const r=currentGroups(),groups=r.groups,total=r.total;
+  if(!groups.length){nodes=[];drawBubbles();document.getElementById('stats').textContent='';return;}
+  const stageArea=(W-2*PAD)*(H-2*PAD);
+  const sumCount=groups.reduce((a,g)=>a+g.count,0);
+  const k=Math.sqrt(stageArea*0.5/(Math.PI*sumCount));
+  const minR=Math.max(26,Math.min(W,H)*0.06);
+  const prev={};nodes.forEach(n=>prev[n.tag]=n);
+  nodes=groups.map(g=>{
+    const rad=Math.max(minR,k*Math.sqrt(g.count));const p=prev[g.tag];
+    return{tag:g.tag,count:g.count,pct:Math.round(g.count/total*100),color:tagColor(g.tag),
+      r:rad,x:p?p.x:W/2+(Math.random()-.5)*W*0.6,y:p?p.y:H*0.22+(Math.random()-.5)*H*0.25,vx:0,vy:0};
+  });
+  const rcap=Math.min((W-2*PAD)/2,(H-2*PAD)/2);
+  nodes.forEach(n=>{if(n.r>rcap)n.r=rcap;});
+  for(let i=0;i<300;i++)stepPhysics();
+  fitToStage();drawBubbles();
+}
+function stepPhysics(){
+  const cx=W/2;
+  for(const n of nodes){
+    if(n===dragNode)continue;
+    n.vy+=0.45;
+    n.vx+=(cx-n.x)*0.0006;
+    n.x+=n.vx;n.y+=n.vy;
+    n.vx*=0.86;n.vy*=0.92;
+  }
+  for(let it=0;it<2;it++){
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const a=nodes[i],b=nodes[j];
+        let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||0.01;
+        const min=a.r+b.r+4,overlap=min-d;
+        if(overlap>0){
+          const ux=dx/d,uy=dy/d,push=overlap/2;
+          const aF=(a===dragNode),bF=(b===dragNode);
+          if(aF&&!bF){b.x+=ux*overlap;b.y+=uy*overlap;b.vx+=ux*overlap*0.25;b.vy+=uy*overlap*0.25;}
+          else if(bF&&!aF){a.x-=ux*overlap;a.y-=uy*overlap;a.vx-=ux*overlap*0.25;a.vy-=uy*overlap*0.25;}
+          else{a.x-=ux*push;a.y-=uy*push;b.x+=ux*push;b.y+=uy*push;}
+        }
+      }
+    }
+  }
+  for(const n of nodes){
+    if(n.x<PAD+n.r){n.x=PAD+n.r;if(n!==dragNode)n.vx*=-0.3}
+    if(n.x>W-PAD-n.r){n.x=W-PAD-n.r;if(n!==dragNode)n.vx*=-0.3}
+    if(n.y<PAD+n.r){n.y=PAD+n.r;if(n!==dragNode)n.vy*=-0.3}
+    if(n.y>H-PAD-n.r){n.y=H-PAD-n.r;if(n!==dragNode)n.vy*=-0.3}
+  }
+}
+function fitToStage(){
+  if(!nodes.length)return;
+  let mnX=Infinity,mxX=-Infinity,mnY=Infinity,mxY=-Infinity;
+  for(const n of nodes){mnX=Math.min(mnX,n.x-n.r);mxX=Math.max(mxX,n.x+n.r);mnY=Math.min(mnY,n.y-n.r);mxY=Math.max(mxY,n.y+n.r);}
+  const bw=mxX-mnX,bh=mxY-mnY;
+  const s=Math.min(1,(W-2*PAD)/bw,(H-2*PAD)/bh);
+  const bcx=(mnX+mxX)/2;
+  for(const n of nodes){
+    if(s<1)n.r*=s;
+    n.x=W/2+(n.x-bcx)*s;
+    n.y=(H-PAD)-(mxY-n.y)*s;
+  }
+}
+function startSim(){lastActivity=performance.now();if(!rafId)rafId=requestAnimationFrame(loop);}
+function loop(now){
+  stepPhysics();drawBubbles();
+  let energy=0;for(const n of nodes)energy+=Math.abs(n.vx)+Math.abs(n.vy);
+  if(dragNode||energy>0.4||now-lastActivity<400){rafId=requestAnimationFrame(loop);}else{rafId=null;}
+}
+function drawBubbles(){
+  const layer=document.getElementById('bub-layer');
+  if(!nodes.length){layer.innerHTML='<text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" fill="#9b9a97" font-size="16">未完了タスクがありません</text>';return;}
+  let s='';
+  for(const n of nodes){
+    const fs=Math.max(9,Math.min(40,n.r*0.36));
+    const hx=n.x-n.r*0.32,hy=n.y-n.r*0.4,hr=n.r*0.42;
+    s+='<g class="bubble" data-tag="'+esc(n.tag)+'">'+
+      '<circle class="body" cx="'+n.x+'" cy="'+n.y+'" r="'+n.r+'" fill="'+n.color+'" fill-opacity="0.74" stroke="'+n.color+'" stroke-opacity="0.95" stroke-width="1.5" filter="url(#soft)"/>'+
+      '<circle cx="'+n.x+'" cy="'+n.y+'" r="'+n.r+'" fill="url(#gloss)" pointer-events="none"/>'+
+      '<ellipse cx="'+hx+'" cy="'+hy+'" rx="'+hr+'" ry="'+(hr*0.7)+'" fill="#fff" opacity="0.33" pointer-events="none"/>'+
+      '<text class="bub-label" x="'+n.x+'" y="'+(n.y-fs*0.45)+'" font-size="'+fs+'">'+esc(n.tag)+'</text>'+
+      '<text class="bub-label" x="'+n.x+'" y="'+(n.y+fs*0.62)+'" font-size="'+(fs*1.08)+'">'+n.pct+'%</text>'+
+      '<text class="bub-label" x="'+n.x+'" y="'+(n.y+fs*1.75)+'" font-size="'+(fs*0.7)+'" fill="rgba(255,255,255,.92)" stroke="none">'+n.count+'件</text>'+
+      '</g>';
+  }
+  layer.innerHTML=s;
+  document.getElementById('stats').textContent='タグ '+nodes.length+' 種類';
+}
+
+/* drag handling */
+const svg=document.getElementById('svg');
+function toSvg(e){const r=svg.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H};}
+function pickNode(p){let hit=null,best=Infinity;for(const n of nodes){const d=Math.hypot(p.x-n.x,p.y-n.y);if(d<=n.r&&d<best){best=d;hit=n;}}return hit;}
+svg.addEventListener('pointerdown',e=>{
+  const p=toSvg(e);const n=pickNode(p);if(!n)return;
+  dragNode=n;dragOff={x:n.x-p.x,y:n.y-p.y};n.vx=n.vy=0;
+  svg.setPointerCapture(e.pointerId);
+  document.querySelectorAll('.bubble').forEach(b=>b.classList.toggle('dragging',b.dataset.tag===n.tag));
+  startSim();
+});
+svg.addEventListener('pointermove',e=>{
+  if(!dragNode)return;
+  const p=toSvg(e);dragNode.x=p.x+dragOff.x;dragNode.y=p.y+dragOff.y;
+  lastActivity=performance.now();startSim();
+});
+function endDrag(){
+  if(!dragNode)return;
+  dragNode=null;lastActivity=performance.now();
+  document.querySelectorAll('.bubble').forEach(b=>b.classList.remove('dragging'));
+  startSim();
+}
+svg.addEventListener('pointerup',endDrag);
+svg.addEventListener('pointercancel',endDrag);
+
+let resizeTO;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTO);
+  resizeTO=setTimeout(()=>{if(view==='bubble'){rebuildSim();startSim();}},150);
+});
+
+renderAll();
+
+</script>
+</body>
+</html>
