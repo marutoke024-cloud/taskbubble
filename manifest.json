@@ -3,7 +3,7 @@
   "short_name": "Task Bubble",
   "description": "タスク管理・バブルチャート・フローチャート・リファレンスボード",
   "lang": "ja",
-  "start_url": "./task-bubble.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
