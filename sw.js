@@ -1,14 +1,12 @@
 /* Task Bubble service worker — offline app shell */
-const CACHE = 'taskbubble-v1';
+const CACHE = 'taskbubble-v2-abyss';
 const ASSETS = [
   './',
-  './task-bubble.html',
+  './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './icon-180.png',
-  './icon-192-maskable.png',
-  './icon-512-maskable.png'
+  './icon-180.png'
 ];
 
 self.addEventListener('install', e => {
@@ -43,7 +41,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
         }
         return resp;
-      }).catch(() => caches.match('./task-bubble.html'));
+      }).catch(() => caches.match('./index.html'));
     })
   );
 });
